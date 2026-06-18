@@ -433,9 +433,6 @@ def login_with_identifier(identifier: str) -> tuple[bool, str, Optional[dict]]:
         return False, "CSV 기반 users 테이블에 등록되지 않은 계정입니다.", None
 
     user["role"] = normalize_role(user["role"])
-    # 화면 헤더/세션에서 동일한 키를 안정적으로 사용하도록 로그인 ID를 명시한다.
-    user["login_id"] = identifier
-
     if user["role"] == "student" and is_valid_student_login_id(identifier):
         return True, "학생 계정으로 로그인되었습니다.", user
     if user["role"] == "professor" and is_valid_professor_login_id(identifier):
