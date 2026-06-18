@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Streamlit, withStreamlitConnection } from 'streamlit-component-lib';
+import { Streamlit } from 'streamlit-component-lib';
 import {
   BookOpen, Calendar, CheckCircle2, Clock, Database, History, LogOut,
   MapPin, RefreshCcw, RotateCcw, RotateCw, Search, ShieldCheck,
@@ -300,5 +300,30 @@ function App({ args }) {
   );
 }
 
-const ConnectedApp = withStreamlitConnection(App);
-createRoot(document.getElementById('root')).render(<ConnectedApp />);
+
+function StreamlitComponentRoot() {
+  const [renderData, setRenderData] = useState(null);
+
+  useEffect(() => {
+    const onRender = (event) => {
+      setRenderData(event.detail || {});
+      window.setTimeout(() => Streamlit.setFrameHeight(document.documentElement.scrollHeight + 20), 0);
+    };
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    Streamlit.setFrameHeight(900);
+
+    return () => {
+      Streamlit.events.removeEventListener(Streamlit.RENDER_EVENT, onRender);
+    };
+  }, []);
+
+  if (!renderData) {
+    return <div className="component-loading">ClassFit 화면을 불러오는 중입니다...</div>;
+  }
+
+  return <App args={renderData.args || {}} />;
+}
+
+createRoot(document.getElementById('root')).render(<StreamlitComponentRoot />);
