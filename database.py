@@ -15,6 +15,7 @@ import csv
 import hashlib
 import sqlite3
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
@@ -397,6 +398,7 @@ def authenticate_user(user_name: str, password: str) -> Optional[dict]:
 
 
 PROFESSOR_LOGIN_IDS = {"08095006", "13970001", "14268001", "14271001", "14283001", "14798002"}
+ADMIN_LOGIN_IDS = {"admin"}
 
 
 def is_valid_student_login_id(identifier: str) -> bool:
@@ -413,20 +415,26 @@ def is_valid_professor_login_id(identifier: str) -> bool:
     return identifier in PROFESSOR_LOGIN_IDS
 
 
+def is_valid_admin_login_id(identifier: str) -> bool:
+    """관리자 로그인 ID를 인정한다."""
+    return identifier in ADMIN_LOGIN_IDS
+
+
 def login_with_identifier(identifier: str) -> tuple[bool, str, Optional[dict]]:
     """비밀번호 없이 CSV/DB에 등록된 학번 또는 교수 학수번호만으로 로그인한다.
 
     - 학생: 202130001~202139999, 202230001~202239999, ..., 202630001~202639999
     - 교수: 지정된 6개 학수번호만 허용
-    - 보안 목적의 실제 인증이 아니라, 알고리즘 프로젝트 시연용 식별자 기반 로그인이다.
+    - 관리자: admin 계정 허용
+    - 보안 목적의 실제 인증이 아니라, 알고리즘 프로젝트용 식별자 기반 로그인이다.
     """
     identifier = str(identifier or "").strip()
     if not identifier:
         return False, "학번 또는 교수 학수번호를 입력해야 합니다.", None
 
-    # 오직 학생 학번 또는 지정 교수 학수번호만 로그인 허용
-    if not (is_valid_student_login_id(identifier) or is_valid_professor_login_id(identifier)):
-        return False, "등록 가능한 형식의 학번 또는 교수 학수번호가 아닙니다.", None
+    # 학생 학번, 지정 교수 학수번호, 관리자 코드만 로그인 허용
+    if not (is_valid_student_login_id(identifier) or is_valid_professor_login_id(identifier) or is_valid_admin_login_id(identifier)):
+        return False, "등록 가능한 형식의 학번, 교수 학수번호 또는 관리자 코드가 아닙니다.", None
 
     user = get_user_by_name(identifier)
     if not user:
@@ -437,6 +445,8 @@ def login_with_identifier(identifier: str) -> tuple[bool, str, Optional[dict]]:
         return True, "학생 계정으로 로그인되었습니다.", user
     if user["role"] == "professor" and is_valid_professor_login_id(identifier):
         return True, "교수 계정으로 로그인되었습니다.", user
+    if user["role"] == "admin" and is_valid_admin_login_id(identifier):
+        return True, "관리자 계정으로 로그인되었습니다.", user
 
     return False, "계정 역할과 입력 ID 형식이 일치하지 않습니다.", None
 
@@ -1015,6 +1025,52 @@ def add_recurring_reservations(room_id: str, start_date: str, end_date: str, sel
         cur_dt += timedelta(days=1)
     return successes, failures
 
+
+
+def get_current_period(now: datetime | None = None) -> int | None:
+    """한국 시간 기준 현재 교시를 계산한다.
+
+    1교시를 09:00~10:00, 12교시를 20:00~21:00으로 본다.
+    수업 시간대 밖이면 None을 반환한다.
+    """
+    if now is None:
+        now = datetime.now(ZoneInfo("Asia/Seoul"))
+    hour = int(now.hour)
+    if 9 <= hour <= 20:
+        return hour - 8
+    return None
+
+
+def get_current_availability_summary() -> dict:
+    """현재 한국 시간 기준 전체 강의실 중 즉시 사용 가능한 강의실 수를 반환한다."""
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
+    date_text = now.strftime("%Y-%m-%d")
+    day = get_day_from_date(date_text)
+    period = get_current_period(now)
+
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM rooms;")
+    total_rooms = int(cur.fetchone()[0])
+    conn.close()
+
+    if period is None:
+        available = total_rooms
+        unavailable = 0
+    else:
+        available = len(get_available_rooms(date_text, period, period + 1, min_capacity=0))
+        unavailable = max(total_rooms - available, 0)
+
+    return {
+        "total_rooms": total_rooms,
+        "available_now": available,
+        "unavailable_now": unavailable,
+        "current_date": date_text,
+        "current_day": day,
+        "current_time": now.strftime("%H:%M"),
+        "current_period": period,
+        "is_class_time": period is not None,
+    }
 
 def get_counts() -> dict:
     conn = connect_db()

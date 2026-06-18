@@ -50,7 +50,7 @@ def _declare_component():
 
     # Streamlit Cloud와 브라우저가 이전 실패한 컴포넌트 경로를 캐시하는 경우가 있어
     # 컴포넌트 이름에 버전을 붙여 새 프론트엔드 엔드포인트를 강제로 사용하게 한다.
-    return components.declare_component("classfit_react_ui_v12", path=str(COMPONENT_BUILD_DIR))
+    return components.declare_component("classfit_react_ui_v14", path=str(COMPONENT_BUILD_DIR))
 
 
 classfit_react_ui = _declare_component()
@@ -137,6 +137,15 @@ def handle_cancel(action: dict) -> None:
         set_notice("error", "로그인이 필요합니다.")
         return
     reservation_id = safe_int(action.get("reservation_id"), 0)
+    target = db.get_reservation_by_id(reservation_id)
+    user = st.session_state.get("user") or {}
+    if not target:
+        set_notice("error", "예약 취소 실패: 해당 예약 ID를 찾을 수 없습니다.")
+        return
+    if user.get("role") != "admin" and int(target.get("user_id")) != int(user_id):
+        set_notice("error", "본인 예약만 취소할 수 있습니다.")
+        return
+
     ok, message, snapshot = db.cancel_reservation(
         reservation_id=reservation_id,
         actor_user_id=user_id,
@@ -213,8 +222,8 @@ def handle_redo() -> None:
 
 def handle_reset(action: dict) -> None:
     user = st.session_state.get("user")
-    if not user or user.get("role") not in {"professor", "admin"}:
-        set_notice("error", "초기화 권한이 없습니다.")
+    if not user or user.get("role") != "admin":
+        set_notice("error", "관리자만 초기화할 수 있습니다.")
         return
     clear_history = bool(action.get("clear_history"))
     ok, message = db.purge_reservations(clear_history=clear_history)
@@ -257,13 +266,40 @@ def process_action(action: Any) -> bool:
 def build_payload() -> dict:
     user = st.session_state.get("user")
     rooms = db.get_rooms()
-    reservations = db.get_all_reservations()
-    history = db.get_reservation_history(limit=250)
+    all_reservations = db.get_all_reservations()
     counts = db.get_counts()
+    current_availability = db.get_current_availability_summary()
+    counts.update({
+        "current_available": current_availability.get("available_now", 0),
+        "current_unavailable": current_availability.get("unavailable_now", 0),
+        "current_total_rooms": current_availability.get("total_rooms", counts.get("rooms", 0)),
+    })
+
     blocked = db.get_blocked_schedules()
     user_reservations = []
+    can_view_history = False
     if user:
         user_reservations = db.get_user_reservations(int(user["user_id"]))
+        can_view_history = user.get("role") == "admin"
+
+    # 학생/교수에게는 전체 예약자의 이름/목적/예약ID를 넘기지 않는다.
+    # 화면의 빈 강의실 계산과 현황판 표시에 필요한 최소 슬롯 정보만 제공한다.
+    if can_view_history:
+        reservations = all_reservations
+        history = db.get_reservation_history(limit=250)
+    else:
+        reservations = [
+            {
+                "room_id": r.get("room_id"),
+                "date": r.get("date"),
+                "day": r.get("day"),
+                "start_period": r.get("start_period"),
+                "end_period": r.get("end_period"),
+            }
+            for r in all_reservations
+        ]
+        history = []
+
     return {
         "user": user,
         "rooms": rooms,
@@ -272,6 +308,8 @@ def build_payload() -> dict:
         "history": history,
         "userReservations": user_reservations,
         "counts": counts,
+        "currentAvailability": current_availability,
+        "canViewHistory": can_view_history,
         "notice": st.session_state.notice,
         "undoCount": len(st.session_state.undo_stack),
         "redoCount": len(st.session_state.redo_stack),

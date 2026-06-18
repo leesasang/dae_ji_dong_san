@@ -1,58 +1,80 @@
-# ClassFit Streamlit Custom Component v1.2
+# ClassFit Streamlit Custom Component v1.4
 
-React 화면을 Streamlit Custom Component로 삽입하고, 예약/취소/이력 저장은 Python + SQLite에서 처리하는 버전입니다.
+가천대학교 강의실 예약 및 시간표 충돌 검사 시스템입니다. Streamlit은 Python 세션/SQLite 로직을 담당하고, 화면은 React Custom Component가 담당합니다.
 
-## 실행
+## v1.4 수정 사항
+
+- 교수 계정 화면을 학생 계정과 동일하게 변경
+  - `예약하기`
+  - `내 예약`
+  - `실시간 현황판`
+- 관리자 계정 추가
+  - 로그인 코드: `admin`
+  - 관리자만 `전체 예약`, `예약 이력`, `예약 관리` 접근 가능
+- 학생/교수에게 전체 예약자 정보와 예약 이력 데이터 미전달
+- 학생/교수는 본인 예약만 취소 가능
+- 관리자만 전체 예약 초기화 가능
+- 새로고침 시 로그인 유지
+  - React Custom Component 내부 localStorage에 로그인 식별자 저장
+  - Streamlit 세션이 초기화되면 저장된 식별자로 자동 재로그인 시도
+- 컴포넌트 캐시 충돌 방지를 위해 Streamlit component name을 `classfit_react_ui_v14`로 변경
+
+## 실행 방법
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## v1.2 수정 사항
+## 화면 수정 후 빌드
 
-- Streamlit Cloud에서 이전 실패한 컴포넌트 경로가 캐시될 수 있어 컴포넌트 이름을 `classfit_react_ui_v12`로 변경했습니다.
-- `component/dist/index.html`, `component/dist/assets/*.js`, `component/dist/assets/*.css` 존재 여부를 실행 전에 검사합니다.
-- React 컴포넌트는 `withStreamlitConnection` 래퍼를 제거하고 `Streamlit.setComponentReady()`를 직접 호출하는 방식으로 변경했습니다.
-- Vite build 경로는 `base: "./"`로 고정되어 Streamlit iframe 내부에서도 JS/CSS를 상대 경로로 불러옵니다.
-
-## 배포 시 주의
-
-Streamlit Cloud에 올릴 때는 반드시 아래 폴더를 포함해야 합니다.
-
-```text
-component/dist/index.html
-component/dist/assets/*.js
-component/dist/assets/*.css
+```bash
+cd component
+npm install
+npm run build
 ```
-
-GitHub에 올릴 때 `.gitignore`에 `dist`가 제외되어 있으면 화면이 로드되지 않습니다. 이 프로젝트는 이미 build 결과물을 포함하고 있으므로 ZIP 전체를 업로드하는 방식이 가장 안전합니다.
 
 ## 구조
 
 ```text
-app.py                    Streamlit 실행 파일
-component/dist/            React build 결과물
-component/src/             React 원본 코드
-database.py                SQLite DB 함수
-classfit.db                실제 DB
-schema.sql                 DB 스키마
-requirements.txt           Python 패키지
+classfit_streamlit_custom_component/
+├── app.py
+├── database.py
+├── classfit.db
+├── schema.sql
+├── requirements.txt
+├── component/
+│   ├── src/
+│   │   ├── main.jsx
+│   │   └── style.css
+│   └── dist/
+└── data/
 ```
 
-## 로그인 예시
+## 로그인 계정
 
-- 학생: `202430001`
-- 학생: `202630001`
-- 교수: `08095006`
+- 학생: `202130001` ~ `202139999`, `202230001` ~ `202239999`, ..., `202630001` ~ `202639999`
+- 교수: `08095006`, `13970001`, `14268001`, `14271001`, `14283001`, `14798002`
+- 관리자: `admin`
 
-## 기능
+비밀번호 없이 학번, 교수 학수번호 또는 관리자 코드만 입력합니다.
 
-- 학번/학수번호 단일 로그인
-- 강의실 추천 및 예약
-- 기존 시간표와 실시간 예약 충돌 검사
-- SQLite 트랜잭션 기반 중복 예약 방지
-- 내 예약 조회
-- 전체 예약 조회
-- 예약 이력 조회
-- Undo / Redo
+## 권한 구조
+
+| 역할 | 접근 화면 |
+|---|---|
+| 학생 | 예약하기, 내 예약, 실시간 현황판 |
+| 교수 | 예약하기, 내 예약, 실시간 현황판 |
+| 관리자 | 예약하기, 내 예약, 실시간 현황판, 전체 예약, 예약 이력, 예약 관리 |
+
+## DB 상태
+
+초기 제출용 DB는 다음 상태입니다.
+
+| 테이블 | 개수 |
+|---|---:|
+| rooms | 40 |
+| blocked_schedules | 896 |
+| users | 60001 |
+| reservations | 0 |
+| reservation_history | 0 |
