@@ -35,12 +35,22 @@ st.markdown(
 
 
 def _declare_component():
-    if not COMPONENT_BUILD_DIR.exists():
+    index_file = COMPONENT_BUILD_DIR / "index.html"
+    assets_dir = COMPONENT_BUILD_DIR / "assets"
+    js_files = list(assets_dir.glob("*.js")) if assets_dir.exists() else []
+    css_files = list(assets_dir.glob("*.css")) if assets_dir.exists() else []
+
+    if not COMPONENT_BUILD_DIR.exists() or not index_file.exists() or not js_files or not css_files:
         st.error(
-            "React 컴포넌트 빌드 파일이 없습니다. component 폴더에서 `npm install && npm run build`를 실행하세요."
+            "React 컴포넌트 빌드 파일이 완전하지 않습니다. "
+            "component 폴더에서 `npm install && npm run build`를 실행하거나, "
+            "dist/assets 폴더까지 포함된 ZIP 전체를 다시 업로드하세요."
         )
         st.stop()
-    return components.declare_component("classfit_react_ui", path=str(COMPONENT_BUILD_DIR))
+
+    # Streamlit Cloud와 브라우저가 이전 실패한 컴포넌트 경로를 캐시하는 경우가 있어
+    # 컴포넌트 이름에 버전을 붙여 새 프론트엔드 엔드포인트를 강제로 사용하게 한다.
+    return components.declare_component("classfit_react_ui_v12", path=str(COMPONENT_BUILD_DIR))
 
 
 classfit_react_ui = _declare_component()
