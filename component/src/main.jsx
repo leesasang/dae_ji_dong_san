@@ -4,12 +4,14 @@ import { Streamlit } from 'streamlit-component-lib';
 import {
   BookOpen, Calendar, CheckCircle2, Clock, Database, History, LogOut,
   MapPin, RefreshCcw, RotateCcw, RotateCw, Search, ShieldCheck,
-  Sparkles, Users, XCircle, Building2, Layers, Trash2, Gauge, Filter
+  Users, XCircle, Building2, Layers, Trash2, Gauge, Filter
 } from 'lucide-react';
 import './style.css';
 
 const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const PERIODS = Array.from({ length: 12 }, (_, i) => i + 1);
+const SESSION_KEY = 'classfit_login_identifier';
+const RESTORE_FLAG_KEY = 'classfit_restore_attempted';
 
 function emit(type, payload = {}) {
   Streamlit.setComponentValue({ type, event_id: `${type}-${Date.now()}-${Math.random()}`, ...payload });
@@ -70,7 +72,7 @@ function Notice({ notice }) {
 }
 
 function TopHeader({ user, onLogout, undoCount, redoCount }) {
-  const roleLabel = user?.role === 'professor' ? '교수' : user?.role === 'student' ? '학생' : '사용자';
+  const roleLabel = user?.role === 'admin' ? '관리자' : user?.role === 'professor' ? '교수' : user?.role === 'student' ? '학생' : '사용자';
   return (
     <header className="top-header">
       <div className="brand-wrap">
@@ -99,10 +101,18 @@ function TopHeader({ user, onLogout, undoCount, redoCount }) {
 function LoginGate({ payload }) {
   const [identifier, setIdentifier] = useState('');
   const counts = payload.counts || {};
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SESSION_KEY);
+    if (saved && window.sessionStorage.getItem(RESTORE_FLAG_KEY) !== saved) {
+      window.sessionStorage.setItem(RESTORE_FLAG_KEY, saved);
+      emit('login', { identifier: saved, restore: true });
+    }
+  }, []);
+
   return (
     <main className="login-page">
       <div className="login-hero">
-        <div className="hero-badge"><Sparkles size={16} /> Algorithm Project</div>
         <h1>ClassFit</h1>
         <p>가천대학교 강의실 예약 및 시간표 충돌 검사 시스템</p>
       </div>
@@ -111,47 +121,44 @@ function LoginGate({ payload }) {
           <div className="login-icon"><ShieldCheck size={28} /></div>
           <div>
             <h2>가천대학교 통합 로그인</h2>
-            <p>학번 또는 교수 학수번호만 입력하세요.</p>
+            <p>학번, 교수 학수번호 또는 관리자 코드를 입력하세요.</p>
           </div>
         </div>
         <form className="login-form" onSubmit={(e) => { e.preventDefault(); emit('login', { identifier }); }}>
-          <label>학번 / 교수 학수번호</label>
+          <label>학번 / 교수 학수번호 / 관리자 코드</label>
           <input
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="예: 202430001 또는 08095006"
+            placeholder="예: 202430001, 08095006 또는 admin"
             autoFocus
           />
           <button type="submit" className="primary full">로그인</button>
         </form>
         <Notice notice={payload.notice} />
-        <div className="sample-box">
-          <b>시연용 계정</b>
-          <div className="sample-row">
-            <button onClick={() => setIdentifier('202430001')}>학생 202430001</button>
-            <button onClick={() => setIdentifier('202630001')}>학생 202630001</button>
-            <button onClick={() => setIdentifier('08095006')}>교수 08095006</button>
-          </div>
-        </div>
         <div className="db-mini-grid">
-          <span>강의실 <b>{counts.rooms ?? 0}</b></span>
-          <span>수업차단 <b>{counts.blocked_schedules ?? 0}</b></span>
-          <span>사용자 <b>{counts.users ?? 0}</b></span>
+          <span>전체 강의실 <b>{payload.currentAvailability?.total_rooms ?? counts.rooms ?? 0}</b></span>
+          <span>현재 사용 가능 <b>{payload.currentAvailability?.available_now ?? 0}</b></span>
         </div>
+        <p className="current-note">
+          기준: {payload.currentAvailability?.current_date} {payload.currentAvailability?.current_time}
+          {payload.currentAvailability?.is_class_time ? ` · ${payload.currentAvailability?.current_period}교시` : ' · 수업 시간 외'}
+        </p>
       </section>
       <p className="footer-note">SQLite DB 기반 실시간 예약 저장 · 트랜잭션 기반 중복 예약 방지</p>
     </main>
   );
 }
 
-function StatCards({ counts }) {
+function StatCards({ counts, current, myCount, isAdmin }) {
   const items = [
-    { label: '강의실', value: counts.rooms || 0, icon: Building2 },
-    { label: '기존 수업', value: counts.blocked_schedules || 0, icon: Calendar },
-    { label: '실시간 예약', value: counts.reservations || 0, icon: CheckCircle2 },
-    { label: '예약 이력', value: counts.reservation_history || 0, icon: History },
+    { label: '전체 강의실', value: current.total_rooms ?? counts.rooms ?? 0, icon: Building2 },
+    { label: '현재 사용 가능', value: current.available_now ?? counts.current_available ?? 0, icon: CheckCircle2 },
+    { label: '실시간 예약', value: counts.reservations || 0, icon: Clock },
+    isAdmin
+      ? { label: '예약 이력', value: counts.reservation_history || 0, icon: History }
+      : { label: '내 예약', value: myCount || 0, icon: Calendar },
   ];
-  return <div className="stats-grid">{items.map((it) => <div className="stat-card" key={it.label}><it.icon size={21} /><div><b>{it.value.toLocaleString()}</b><span>{it.label}</span></div></div>)}</div>;
+  return <div className="stats-grid">{items.map((it) => <div className="stat-card" key={it.label}><it.icon size={21} /><div><b>{Number(it.value || 0).toLocaleString()}</b><span>{it.label}</span></div></div>)}</div>;
 }
 
 function RoomCard({ room, date, start, end, purpose }) {
@@ -251,6 +258,9 @@ function StatusBoard({ payload }) {
 }
 
 function HistoryView({ payload }) {
+  if (!payload.canViewHistory) {
+    return <section className="panel"><div className="empty-card">예약 이력은 관리자 계정에서만 조회할 수 있습니다.</div></section>;
+  }
   const rows = payload.history || [];
   return (
     <section className="panel">
@@ -260,11 +270,11 @@ function HistoryView({ payload }) {
   );
 }
 
-function ProfessorTools({ payload }) {
+function AdminTools({ payload }) {
   return (
     <section className="panel danger-zone">
-      <div className="panel-head"><div><h2>교수/관리용 데이터 제어</h2><p>시연 중 예약 데이터를 초기화할 수 있습니다. 기존 수업 시간표와 사용자 DB는 유지됩니다.</p></div></div>
-      <button className="danger" onClick={() => { if (confirm('실시간 예약을 모두 초기화할까요?')) emit('reset_reservations', { clear_history: false }); }}><RefreshCcw size={16}/> 실시간 예약 초기화</button>
+      <div className="panel-head"><div><h2>관리자 예약 관리</h2><p>전체 예약 데이터와 예약 이력을 관리합니다. 기존 수업 시간표와 계정 DB는 유지됩니다.</p></div></div>
+      <div className="admin-actions"><button className="danger" onClick={() => { if (confirm('실시간 예약을 모두 초기화할까요? 예약 이력은 유지됩니다.')) emit('reset_reservations', { clear_history: false }); }}><RefreshCcw size={16}/> 전체 예약 초기화</button><button className="danger outline" onClick={() => { if (confirm('예약과 예약 이력을 모두 초기화할까요?')) emit('reset_reservations', { clear_history: true }); }}><Trash2 size={16}/> 예약 및 이력 초기화</button></div>
     </section>
   );
 }
@@ -276,25 +286,44 @@ function App({ args }) {
   useEffect(() => { Streamlit.setFrameHeight(document.documentElement.scrollHeight + 20); });
   useEffect(() => { Streamlit.setFrameHeight(document.documentElement.scrollHeight + 20); }, [payload, tab]);
 
+  useEffect(() => {
+    const loginId = user?.login_id || user?.student_id || user?.user_name;
+    if (loginId) {
+      window.localStorage.setItem(SESSION_KEY, loginId);
+      window.sessionStorage.removeItem(RESTORE_FLAG_KEY);
+    }
+  }, [user?.login_id, user?.student_id, user?.user_name]);
+
+  const isAdmin = user?.role === 'admin';
+  const tabs = isAdmin
+    ? [['reserve', '예약하기'], ['mine', '내 예약'], ['board', '실시간 현황판'], ['reservations', '전체 예약'], ['history', '예약 이력'], ['tools', '예약 관리']]
+    : [['reserve', '예약하기'], ['mine', '내 예약'], ['board', '실시간 현황판']];
+
+  useEffect(() => {
+    const validTabs = tabs.map(([id]) => id);
+    if (!validTabs.includes(tab)) setTab('reserve');
+  }, [user?.role, tab]);
+
   if (!user) return <LoginGate payload={payload} />;
-  const isProfessor = user.role === 'professor';
-  const tabs = isProfessor
-    ? [['reserve', '빈 강의실 찾기'], ['board', '실시간 현황판'], ['reservations', '전체 예약'], ['history', '예약 이력'], ['tools', '데이터 관리']]
-    : [['reserve', '예약하기'], ['mine', '내 예약'], ['board', '실시간 현황판'], ['history', '예약 이력']];
 
   return (
     <div className="app-shell">
-      <TopHeader user={user} onLogout={() => emit('logout')} undoCount={payload.undoCount || 0} redoCount={payload.redoCount || 0} />
+      <TopHeader user={user} onLogout={() => { window.localStorage.removeItem(SESSION_KEY); window.sessionStorage.removeItem(RESTORE_FLAG_KEY); emit('logout'); }} undoCount={payload.undoCount || 0} redoCount={payload.redoCount || 0} />
       <main className="content-shell">
         <Notice notice={payload.notice} />
-        <StatCards counts={payload.counts || {}} />
+        <StatCards
+          counts={payload.counts || {}}
+          current={payload.currentAvailability || {}}
+          myCount={(payload.userReservations || []).length}
+          isAdmin={isAdmin}
+        />
         <nav className="tabs">{tabs.map(([id, label]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{label}</button>)}</nav>
         {tab === 'reserve' && <ReservationForm payload={payload} />}
         {tab === 'mine' && <MyReservations payload={payload} />}
         {tab === 'reservations' && <MyReservations payload={payload} professor />}
         {tab === 'board' && <StatusBoard payload={payload} />}
         {tab === 'history' && <HistoryView payload={payload} />}
-        {tab === 'tools' && <ProfessorTools payload={payload} />}
+        {tab === 'tools' && <AdminTools payload={payload} />}
       </main>
     </div>
   );
