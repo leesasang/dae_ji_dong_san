@@ -23,7 +23,7 @@ st.set_page_config(
     page_title="ClassFit | Gachon University Reservation System",
     page_icon="🏫",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -31,70 +31,94 @@ st.set_page_config(
 # Design system: React UI theme port
 # -------------------------
 
-def apply_theme(theme: str) -> None:
-    dark = theme == "다크 모드"
-    palette = {
-        "bg": "#020617" if dark else "#F8FAFC",
-        "panel": "#0F172A" if dark else "#FFFFFF",
-        "panel2": "#111827" if dark else "#F1F5F9",
-        "panel3": "#1E293B" if dark else "#E2E8F0",
-        "border": "#334155" if dark else "#E2E8F0",
-        "text": "#E5E7EB" if dark else "#1E293B",
-        "muted": "#94A3B8" if dark else "#64748B",
-        "primary": "#005BAC",
-        "primary2": "#60A5FA" if dark else "#2563EB",
-        "success_bg": "#052E16" if dark else "#F0FDF4",
-        "success_text": "#BBF7D0" if dark else "#166534",
-        "danger_bg": "#450A0A" if dark else "#FEF2F2",
-        "danger_text": "#FECACA" if dark else "#991B1B",
-        "info_bg": "#0C4A6E" if dark else "#EFF6FF",
-        "info_text": "#BAE6FD" if dark else "#1D4ED8",
-    }
-    css = f"""
+def apply_theme(theme: str = "React Light") -> None:
+    """React/Vite 원본의 Tailwind 디자인을 Streamlit CSS로 고정 적용한다."""
+    css = """
     <style>
-    :root {{
-        --cf-bg:{palette['bg']}; --cf-panel:{palette['panel']}; --cf-panel2:{palette['panel2']};
-        --cf-panel3:{palette['panel3']}; --cf-border:{palette['border']}; --cf-text:{palette['text']};
-        --cf-muted:{palette['muted']}; --cf-primary:{palette['primary']}; --cf-primary2:{palette['primary2']};
-        --cf-success-bg:{palette['success_bg']}; --cf-success-text:{palette['success_text']};
-        --cf-danger-bg:{palette['danger_bg']}; --cf-danger-text:{palette['danger_text']};
-        --cf-info-bg:{palette['info_bg']}; --cf-info-text:{palette['info_text']};
-    }}
-    html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--cf-bg) !important; color: var(--cf-text) !important; }}
-    .main .block-container {{ max-width: 1480px; padding-top: 1rem; padding-bottom: 3rem; }}
-    [data-testid="stSidebar"] {{ background: var(--cf-panel) !important; border-right:1px solid var(--cf-border); }}
-    [data-testid="stSidebar"] * {{ color: var(--cf-text) !important; }}
-    h1,h2,h3,h4,h5,h6,p,span,div,label,[data-testid="stMarkdownContainer"] {{ color: var(--cf-text) !important; }}
-    small, .caption, [data-testid="stCaptionContainer"], .muted {{ color: var(--cf-muted) !important; }}
-    .topbar {{ background:#005BAC; color:white !important; border-radius:18px; padding:18px 22px; margin-bottom:18px;
-        box-shadow:0 14px 30px rgba(0,91,172,.22); display:flex; align-items:center; justify-content:space-between; gap:16px; }}
-    .topbar h1 {{ color:white !important; margin:0; font-size:30px; letter-spacing:-.02em; }}
-    .topbar p {{ color:#DBEAFE !important; margin:4px 0 0 0; font-size:14px; }}
-    .brand-chip {{ background:rgba(255,255,255,.14); color:white !important; border:1px solid rgba(255,255,255,.22); padding:7px 11px; border-radius:999px; font-size:12px; font-weight:800; }}
-    .card {{ background:var(--cf-panel); border:1px solid var(--cf-border); border-radius:18px; padding:18px; box-shadow:0 8px 22px rgba(0,0,0,.12); margin-bottom:14px; }}
-    .soft-card {{ background:var(--cf-panel2); border:1px solid var(--cf-border); border-radius:16px; padding:15px; margin-bottom:12px; }}
-    .metric-card {{ background:var(--cf-panel); border:1px solid var(--cf-border); border-radius:18px; padding:17px; box-shadow:0 8px 22px rgba(0,0,0,.10); }}
-    .metric-label {{ color:var(--cf-muted) !important; font-size:13px; font-weight:700; }}
-    .metric-value {{ color:var(--cf-text) !important; font-size:28px; font-weight:900; margin-top:4px; }}
-    .section-title {{ display:flex; align-items:center; gap:9px; font-size:23px; font-weight:900; margin:8px 0 3px; }}
-    .section-desc {{ color:var(--cf-muted) !important; margin-bottom:16px; font-size:14px; }}
-    .badge {{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:900; margin:2px; border:1px solid var(--cf-border); }}
-    .badge-ok {{ background:var(--cf-success-bg); color:var(--cf-success-text) !important; }}
-    .badge-bad {{ background:var(--cf-danger-bg); color:var(--cf-danger-text) !important; }}
-    .badge-info {{ background:var(--cf-info-bg); color:var(--cf-info-text) !important; }}
-    .room-card {{ border:1px solid var(--cf-border); background:var(--cf-panel); border-radius:16px; padding:14px; min-height:160px; margin-bottom:10px; }}
-    .room-title {{ font-weight:900; font-size:18px; color:var(--cf-text) !important; }}
-    .room-sub {{ color:var(--cf-muted) !important; font-size:13px; margin-top:2px; }}
-    .mini {{ color:var(--cf-muted) !important; font-size:12px; }}
-    .status-grid {{ font-size:12px; line-height:1.15; }}
+    :root {
+        --cf-bg:#F8FAFC;
+        --cf-panel:#FFFFFF;
+        --cf-soft:#F8FAFC;
+        --cf-soft2:#F1F5F9;
+        --cf-border:#E2E8F0;
+        --cf-border-soft:#CBD5E1;
+        --cf-text:#1E293B;
+        --cf-muted:#64748B;
+        --cf-faint:#94A3B8;
+        --cf-primary:#005BAC;
+        --cf-primary-dark:#004A8D;
+        --cf-blue-soft:rgba(0,91,172,.10);
+        --cf-shadow:0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.08);
+        --cf-shadow-lg:0 12px 28px rgba(15,23,42,.12);
+    }
+    html, body, .stApp, [data-testid="stAppViewContainer"] {
+        background:var(--cf-bg) !important;
+        color:var(--cf-text) !important;
+        font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    }
+    [data-testid="stHeader"] {background:transparent !important;}
+    .main .block-container {max-width:1280px; padding-top:0 !important; padding-bottom:3rem;}
+    [data-testid="stSidebar"] {display:none !important;}
+    h1,h2,h3,h4,h5,h6,p,span,div,label,[data-testid="stMarkdownContainer"] {color:var(--cf-text) !important;}
+    .muted, small, .caption, [data-testid="stCaptionContainer"] {color:var(--cf-muted) !important;}
+    .cf-login-shell {min-height:calc(100vh - 80px); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; color:var(--cf-text);}
+    .cf-lang-box {position:fixed; top:24px; right:24px; display:flex; align-items:center; gap:12px; background:white; padding:8px 16px; border-radius:12px; border:1px solid var(--cf-border); box-shadow:var(--cf-shadow); z-index:50;}
+    .cf-lang-label {font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#94A3B8 !important;}
+    .cf-login-card {width:100%; max-width:448px; background:white; border:1px solid var(--cf-border); border-radius:18px; box-shadow:0 10px 20px rgba(15,23,42,.10); overflow:hidden;}
+    .cf-login-head {background:var(--cf-primary); padding:32px; text-align:center; position:relative; overflow:hidden;}
+    .cf-login-orb {position:absolute; right:-32px; top:-32px; width:112px; height:112px; background:rgba(255,255,255,.10); border-radius:999px; filter:blur(18px);}
+    .cf-logo-box {width:48px;height:48px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:var(--cf-shadow); color:var(--cf-primary) !important; font-weight:900; font-size:26px; letter-spacing:-.04em;}
+    .cf-login-title {font-size:20px; font-weight:900; color:white !important; letter-spacing:-.02em; margin:0;}
+    .cf-login-title span {color:rgba(255,255,255,.82) !important; font-weight:300; font-size:14px; margin-left:8px; text-transform:uppercase; letter-spacing:.06em;}
+    .cf-login-desc {color:#E2E8F0 !important; font-size:12px; line-height:1.65; max-width:320px; margin:8px auto 0; opacity:.9;}
+    .cf-version-ribbon {position:absolute; top:0; right:0; background:#FACC15; color:var(--cf-primary) !important; font-size:9px; font-family:monospace; font-weight:900; padding:3px 10px; border-bottom-left-radius:8px; letter-spacing:.08em;}
+    .cf-login-foot {padding:14px 24px; background:#F8FAFC; border-top:1px solid var(--cf-border); display:flex; align-items:center; justify-content:space-between;}
+    .cf-login-foot span {font-size:9px; font-family:monospace; text-transform:uppercase; letter-spacing:.14em; color:#94A3B8 !important;}
+    .cf-login-foot b {font-size:9px; font-family:monospace; text-transform:uppercase; letter-spacing:.14em; color:var(--cf-primary) !important;}
+    .cf-app-header {min-height:64px; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); padding:12px 24px; background:var(--cf-primary); color:white !important; box-shadow:0 4px 12px rgba(0,91,172,.22); position:sticky; top:0; z-index:20; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px;}
+    .cf-brand {display:flex; align-items:center; gap:16px;}
+    .cf-brand-logo {width:32px;height:32px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;box-shadow:var(--cf-shadow); color:var(--cf-primary) !important; font-size:20px; font-weight:900;}
+    .cf-brand-title {font-size:20px; font-weight:900; color:white !important; letter-spacing:-.03em; margin:0;}
+    .cf-brand-title span {font-size:12px; color:rgba(255,255,255,.86) !important; font-weight:300; margin-left:8px; text-transform:uppercase; letter-spacing:.06em;}
+    .cf-brand-sub {font-size:10px; color:rgba(255,255,255,.72) !important; font-family:monospace; text-transform:uppercase; letter-spacing:.16em; margin:1px 0 0;}
+    .cf-userbar {display:flex; align-items:center; gap:12px; border-left:1px solid rgba(255,255,255,.20); padding-left:16px;}
+    .cf-userbar p {margin:0; color:white !important; text-align:right;}
+    .cf-userbar .name {font-size:12px; font-weight:800;}
+    .cf-userbar .role {font-size:9px; opacity:.8; text-transform:uppercase; letter-spacing:.12em; line-height:1; margin-top:3px;}
+    .cf-top-nav {background:white; border:1px solid var(--cf-border); border-radius:12px; box-shadow:var(--cf-shadow); padding:4px; display:flex; flex-wrap:wrap; gap:12px; margin:20px 0;}
+    div[role="radiogroup"] {gap:8px !important;}
+    div[role="radiogroup"] label {background:transparent !important; border-radius:9px !important; padding:7px 12px !important; border:0 !important; font-size:12px !important; font-weight:800 !important; color:#64748B !important;}
+    div[role="radiogroup"] label:has(input:checked) {background:var(--cf-blue-soft) !important; color:var(--cf-primary) !important; box-shadow:inset 4px 0 0 var(--cf-primary);}
+    .topbar {background:white; color:var(--cf-text) !important; border:1px solid var(--cf-border); border-radius:12px; padding:20px; margin:0 0 18px; box-shadow:var(--cf-shadow);}
+    .topbar h1 {color:var(--cf-text) !important; margin:0; font-size:20px; font-weight:900; letter-spacing:-.02em;}
+    .topbar p {color:var(--cf-muted) !important; margin:6px 0 0; font-size:12px; line-height:1.55;}
+    .brand-chip {display:inline-block; background:var(--cf-blue-soft); color:var(--cf-primary) !important; border:1px solid rgba(0,91,172,.18); padding:4px 8px; border-radius:999px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; margin-top:10px;}
+    .card {background:white; border:1px solid var(--cf-border); border-radius:12px; padding:20px; box-shadow:var(--cf-shadow); margin-bottom:14px;}
+    .soft-card {background:#F8FAFC; border:1px solid var(--cf-border); border-radius:12px; padding:16px; margin-bottom:12px;}
+    .metric-card {background:white; border:1px solid var(--cf-border); border-radius:12px; padding:20px; box-shadow:var(--cf-shadow);}
+    .metric-label {color:var(--cf-muted) !important; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;}
+    .metric-value {color:var(--cf-text) !important; font-size:28px; font-weight:900; margin-top:4px;}
+    .section-title {font-size:18px; font-weight:900; margin:8px 0 3px; color:var(--cf-text) !important;}
+    .section-desc {color:var(--cf-muted) !important; margin-bottom:16px; font-size:12px;}
+    .badge {display:inline-block; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:900; margin:2px; border:1px solid var(--cf-border);}
+    .badge-ok {background:#F0FDF4; color:#166534 !important; border-color:#BBF7D0;}
+    .badge-bad {background:#FEF2F2; color:#991B1B !important; border-color:#FECACA;}
+    .badge-info {background:#EFF6FF; color:#1D4ED8 !important; border-color:#BFDBFE;}
+    .room-card {border:1px solid var(--cf-border); background:white; border-radius:14px; padding:16px; min-height:150px; margin-bottom:10px; box-shadow:var(--cf-shadow);}
+    .room-title {font-weight:900; font-size:17px; color:var(--cf-text) !important;}
+    .room-sub {color:var(--cf-muted) !important; font-size:12px; margin-top:2px;}
+    .mini {color:var(--cf-muted) !important; font-size:11px;}
+    .status-grid {font-size:12px; line-height:1.15;}
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div,
-    [data-testid="stDateInput"] input, [data-testid="stNumberInput"] input, input, textarea {{
-        background:var(--cf-panel2) !important; color:var(--cf-text) !important; border-color:var(--cf-border) !important;
-    }}
-    .stButton > button {{ border-radius:12px !important; border:1px solid var(--cf-border) !important; font-weight:800 !important; }}
-    .stButton > button[kind="primary"] {{ background:#005BAC !important; color:white !important; border-color:#005BAC !important; }}
-    [data-testid="stDataFrame"] {{ border:1px solid var(--cf-border); border-radius:14px; overflow:hidden; }}
-    hr {{ border-color: var(--cf-border); }}
+    [data-testid="stDateInput"] input, [data-testid="stNumberInput"] input, input, textarea {
+        background:#F8FAFC !important; color:var(--cf-text) !important; border-color:var(--cf-border) !important; border-radius:10px !important;
+    }
+    .stButton > button {border-radius:8px !important; border:1px solid var(--cf-border) !important; font-weight:800 !important; font-size:12px !important;}
+    .stButton > button[kind="primary"] {background:var(--cf-primary) !important; color:white !important; border-color:var(--cf-primary) !important; box-shadow:var(--cf-shadow);}
+    .stButton > button[kind="primary"]:hover {background:var(--cf-primary-dark) !important; border-color:var(--cf-primary-dark) !important;}
+    [data-testid="stDataFrame"] {border:1px solid var(--cf-border); border-radius:12px; overflow:hidden; box-shadow:var(--cf-shadow);}
+    hr {border-color:var(--cf-border);}
+    .stAlert {border-radius:12px !important;}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
@@ -360,21 +384,33 @@ def redo_action() -> None:
 # -------------------------
 
 def login_page() -> None:
-    st.markdown("<div style='height:42px'></div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1.1, 1.25, 1.1])
-    with c2:
-        st.markdown(
-            """
-            <div class="card" style="text-align:center; padding:30px 26px;">
-                <div style="width:62px;height:62px;background:#005BAC;border-radius:18px;margin:0 auto 14px auto;display:flex;align-items:center;justify-content:center;font-size:30px;">🏫</div>
-                <h2 style="margin-bottom:4px;">가천대학교 통합 로그인</h2>
-                <p class="muted">학번 또는 교수 학수번호만 입력하여 ClassFit에 접속하세요.</p>
+    st.markdown(
+        """
+        <div class="cf-lang-box">
+            <span class="cf-lang-label">Language</span>
+            <span class="badge badge-info">KO</span>
+        </div>
+        <div class="cf-login-shell">
+            <div class="cf-login-card">
+                <div class="cf-login-head">
+                    <div class="cf-login-orb"></div>
+                    <div class="cf-version-ribbon">Gachon Academic v4.0</div>
+                    <div class="cf-logo-box">C</div>
+                    <h1 class="cf-login-title">ClassFit <span>Academic System</span></h1>
+                    <p class="cf-login-desc">가천대학교 강의실 조회·예약 통합 시스템입니다. 학번 또는 교수 학수번호만 입력하여 접속하세요.</p>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    # Streamlit form을 React 로그인 카드 안쪽과 같은 폭으로 중앙 배치한다.
+    c1, c2, c3 = st.columns([1.2, 1.0, 1.2])
+    with c2:
+        st.markdown("<div class='card' style='margin-top:-42vh; border-top:0; border-top-left-radius:0; border-top-right-radius:0;'>", unsafe_allow_html=True)
         with st.form("login_form", border=False):
             identifier = st.text_input("학번 또는 교수 학수번호", placeholder="예: 202430001 또는 08095006")
+            st.caption("학생: 202130001~202639999 범위 학번 / 교수: 지정 학수번호")
             submitted = st.form_submit_button("로그인", type="primary", use_container_width=True)
             if submitted:
                 ok, msg, user = db.login_with_identifier(identifier)
@@ -382,43 +418,71 @@ def login_page() -> None:
                     st.session_state.user = user
                     st.session_state.undo_stack = []
                     st.session_state.redo_stack = []
-                    st.success(msg)
                     st.rerun()
                 else:
                     st.error(msg)
-        st.caption("로그인 방식: 비밀번호 없이 CSV/DB에 등록된 학생 학번 또는 교수 학수번호만 입력")
+        st.markdown(
+            """
+            <div class="cf-login-foot">
+                <span>Database Status</span>
+                <b>Connected: SQL_V2</b>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;font-size:10px;color:#94A3B8!important;font-weight:800;text-transform:uppercase;letter-spacing:.12em;'>Gachon University ClassFit System v4.0</p>", unsafe_allow_html=True)
 
 
-def sidebar() -> str:
+def app_header(user: dict) -> None:
+    role_label = ROLE_LABELS.get(user["role"], user["role"])
+    st.markdown(
+        f"""
+        <div class="cf-app-header">
+            <div class="cf-brand">
+                <div class="cf-brand-logo">C</div>
+                <div>
+                    <p class="cf-brand-title">ClassFit <span>Academic System</span></p>
+                    <p class="cf-brand-sub">Gachon Campus Administration</p>
+                </div>
+            </div>
+            <div class="cf-userbar">
+                <div>
+                    <p class="name">{user['user_name']} ({user['login_id']})</p>
+                    <p class="role">{role_label}</p>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def top_nav() -> str:
     user = st.session_state.user
-    with st.sidebar:
-        st.markdown("### 🏫 ClassFit")
-        st.caption("Gachon University Classroom Reservation System")
-        st.divider()
-        st.markdown(f"**{user['user_name']}**")
-        st.caption(f"{ROLE_LABELS.get(user['role'], user['role'])} 계정 · user_id {user['user_id']}")
-        theme = st.selectbox("화면 테마", ["다크 모드", "라이트 모드"], index=0, key="theme_select")
-        st.session_state.theme = theme
-        st.divider()
-        role = user["role"]
-        if role == "admin":
-            menu = st.radio(
-                "관리자 메뉴",
-                ["실시간 가용 현황판", "강의실 데이터 관리", "강의실 이용 통계", "인프라 관리 센터", "예약 이력 조회"],
-            )
-        elif role == "professor":
-            menu = st.radio(
-                "교수 메뉴",
-                ["유휴 강의실 연속 공강 조회", "강의실 조회 및 예약", "학과별 정규 주간 시간표", "내 예약 내역 확인"],
-            )
-        else:
-            menu = st.radio("학생 메뉴", ["강의실 조회 및 예약", "내 예약 내역 확인"])
-        st.divider()
+    app_header(user)
+    role = user["role"]
+    if role == "admin":
+        options = ["실시간 가용 현황판", "강의실 데이터 관리", "강의실 이용 통계", "인프라 관리 센터", "예약 이력 조회"]
+        label = "관리자 메뉴"
+    elif role == "professor":
+        options = ["유휴 강의실 연속 공강 조회", "강의실 조회 및 예약", "학과별 정규 주간 시간표", "내 예약 내역 확인"]
+        label = "교수 메뉴"
+    else:
+        options = ["강의실 조회 및 예약", "내 예약 내역 확인"]
+        label = "학생 메뉴"
+
+    st.markdown("<div class='cf-top-nav'>", unsafe_allow_html=True)
+    menu = st.radio(label, options, horizontal=True, label_visibility="collapsed", key=f"menu_{role}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    right, left = st.columns([8, 1])
+    with left:
         if st.button("로그아웃", use_container_width=True):
             for key in ["user", "undo_stack", "redo_stack"]:
                 st.session_state.pop(key, None)
             st.rerun()
-        return menu
+    return menu
 
 
 # -------------------------
@@ -752,14 +816,11 @@ def reservation_history_page() -> None:
 
 def main() -> None:
     db.ensure_seed_data()
-    if "theme" not in st.session_state:
-        st.session_state.theme = "다크 모드"
-    apply_theme(st.session_state.theme)
+    apply_theme("React Light")
     if "user" not in st.session_state:
         login_page()
         return
-    menu = sidebar()
-    apply_theme(st.session_state.get("theme_select", st.session_state.theme))
+    menu = top_nav()
 
     if menu == "강의실 조회 및 예약":
         room_search_and_booking()
