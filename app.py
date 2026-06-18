@@ -435,7 +435,16 @@ def login_page() -> None:
 
 
 def app_header(user: dict) -> None:
-    role_label = ROLE_LABELS.get(user["role"], user["role"])
+    role = user.get("role", "student")
+    role_label = ROLE_LABELS.get(role, role)
+
+    # v4.1 fix:
+    # 기존 세션이나 DB 조회 결과에는 login_id 필드가 없을 수 있다.
+    # 학번/교수 학수번호 로그인에서는 user_name 자체가 로그인 ID이므로
+    # login_id가 없으면 user_name 또는 student_id로 안전하게 대체한다.
+    user_name = user.get("user_name") or user.get("student_id") or "사용자"
+    login_id = user.get("login_id") or user.get("student_id") or user_name
+
     st.markdown(
         f"""
         <div class="cf-app-header">
@@ -448,7 +457,7 @@ def app_header(user: dict) -> None:
             </div>
             <div class="cf-userbar">
                 <div>
-                    <p class="name">{user['user_name']} ({user['login_id']})</p>
+                    <p class="name">{user_name} ({login_id})</p>
                     <p class="role">{role_label}</p>
                 </div>
             </div>
